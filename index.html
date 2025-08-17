@@ -515,6 +515,7 @@
         let isWorkPhase = true;
         let audioContext = null;
         let lastAlertSecond = null;
+        let lastMetronomeSecond = null;
         let stopwatchTime = 0; // Tempo del cronometro in secondi
         let stopwatchInterval = null;
         let deferredPrompt;
@@ -848,6 +849,8 @@
                     
                     // Resetta l'ultimo secondo di avviso
                     lastAlertSecond = null;
+                    // Resetta l'ultimo secondo del metronomo
+                    lastMetronomeSecond = null;
                 }
             }
             
@@ -867,6 +870,12 @@
                     timeLeft--;
                     updateDisplay();
                     
+                    // Controlla se è necessario riprodurre un suono di metronomo ogni 15 secondi
+                    if (timeLeft > 0 && timeLeft % 15 === 0 && lastMetronomeSecond !== timeLeft) {
+                        playSound(1000, 0.1); // Suono di metronomo breve
+                        lastMetronomeSecond = timeLeft;
+                    }
+                    
                     // Controlla se è necessario riprodurre un suono di avviso
                     if ((timeLeft === 3 || timeLeft === 2) && lastAlertSecond !== timeLeft) {
                         playSound(660, 0.2); // Suono di avviso breve
@@ -878,31 +887,35 @@
                         if (mode === 'tabata') {
                             if (isWorkPhase) {
                                 // Fase di lavoro finita
-                                playSound(880); // Suono alto per lavoro finito
+                                playSound(440); // Suono basso per lavoro finito (INVERTITO)
                                 
                                 if (currentRound < parseInt(roundsInput.value)) {
                                     // Passa alla fase di riposo
                                     isWorkPhase = false;
                                     timeLeft = parseInt(restTimeInput.value);
                                     totalTime = parseInt(restTimeInput.value);
+                                    // Resetta il metronomo per la nuova fase
+                                    lastMetronomeSecond = null;
                                 } else {
                                     // Tutti i round completati
                                     clearInterval(timer);
                                     isRunning = false;
                                     timerPhase.textContent = 'Completato!';
-                                    playSound(440); // Suono basso per completamento
+                                    playSound(880); // Suono alto per completamento
                                     startBtn.classList.remove('hidden');
                                     pauseBtn.classList.add('hidden');
                                 }
                             } else {
                                 // Fase di riposo finita
-                                playSound(440); // Suono basso per riposo finito
+                                playSound(880); // Suono alto per riposo finito (INVERTITO)
                                 
                                 // Passa al round successivo
                                 currentRound++;
                                 isWorkPhase = true;
                                 timeLeft = parseInt(workTimeInput.value);
                                 totalTime = parseInt(workTimeInput.value);
+                                // Resetta il metronomo per la nuova fase
+                                lastMetronomeSecond = null;
                             }
                         } else {
                             // Modalità countdown
@@ -949,6 +962,7 @@
                 currentRound = 0;
                 isWorkPhase = true;
                 lastAlertSecond = null;
+                lastMetronomeSecond = null;
                 
                 timerTime.textContent = '00:00';
                 timerPhase.textContent = 'Pronto';
