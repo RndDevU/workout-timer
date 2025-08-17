@@ -1,0 +1,10 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="24" fill="#1e3c72"/>
+  <circle cx="96" cy="96" r="70" fill="none" stroke="#ffffff" stroke-width="8"/>
+  <line x1="96" y1="96" x2="96" y2="40" stroke="#FF5722" stroke-width="6" stroke-linecap="round"/>
+  <line x1="96" y1="96" x2="140" y2="96" stroke="#4CAF50" stroke-width="6" stroke-linecap="round"/>
+  <line x1="96" y1="96" x2="96" y2="152" stroke="#2196F3" stroke-width="6" stroke-linecap="round"/>
+  <line x1="96" y1="96" x2="52" y2="96" stroke="#FFC107" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="96" cy="96" r="10" fill="#ffffff"/>
+  <text x="96" y="180" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="16" font-weight="bold">TIMER</text>
+</svg>

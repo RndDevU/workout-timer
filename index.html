@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Timer Allenamento</title>
+    
+    <!-- Manifest per la PWA -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Icone per la PWA -->
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <link rel="apple-touch-icon" href="icon-512x512.png">
+    <!-- Tema colore per la PWA -->
+    <meta name="theme-color" content="#1e3c72">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #ffffff;
+            color: #333333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            overflow-y: auto;
+            user-select: none;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+            color: #1e3c72;
+        }
+        
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(30, 60, 114, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 15px 10px;
+            background: transparent;
+            border: none;
+            color: #1e3c72;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .mode-btn.active {
+            background: rgba(30, 60, 114, 0.2);
+            color: #1e3c72;
+        }
+        
+        .timer-display {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 30px;
+        }
+        
+        .timer-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 15px solid rgba(30, 60, 114, 0.1);
+        }
+        
+        .timer-inner {
+            width: 85%;
+            height: 85%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .timer-inner.stopwatch-mode {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        
+        .timer-time {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #1e3c72;
+        }
+        
+        .timer-phase {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            color: #555555;
+        }
+        
+        .progress-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            width: 250px;
+            height: 250px;
+            z-index: 1;
+        }
+        
+        .progress-ring__circle {
+            stroke-dasharray: 785.4; /* 2 * π * 125 */
+            stroke-dashoffset: 785.4;
+            transition: stroke-dashoffset 0.1s linear;
+            stroke-width: 15;
+            fill: transparent;
+            stroke: #FF5722;
+        }
+        
+        .stopwatch-display {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .start-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .pause-btn {
+            background: #FFC107;
+            color: #333333;
+        }
+        
+        .reset-btn {
+            background: #F44336;
+            color: white;
+        }
+        
+        .settings {
+            background: rgba(30, 60, 114, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .setting-group {
+            margin-bottom: 15px;
+        }
+        
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1rem;
+            color: #1e3c72;
+            font-weight: 600;
+        }
+        
+        .setting-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(30, 60, 114, 0.2);
+            background: white;
+            color: #333333;
+            font-size: 1.1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .setting-group input::placeholder {
+            color: #999999;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .rounds-display {
+            font-size: 1.2rem;
+            margin-top: 10px;
+            color: #555555;
+        }
+        
+        /* PWA Install Button */
+        .install-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e3c72;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+        }
+        
+        /* Install Instructions */
+        .install-instructions {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .install-instructions.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .instructions-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .instructions-content h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .instructions-content ol {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions-content li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .close-instructions {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        @media (max-width: 480px) {
+            .timer-time {
+                font-size: 3rem;
+            }
+            
+            .control-btn {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .mode-btn {
+                font-size: 0.9rem;
+                padding: 12px 8px;
+            }
+            
+            body {
+                padding: 10px 0;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 15px;
+            }
+            
+            .mode-selector {
+                margin-bottom: 20px;
+            }
+            
+            .timer-display {
+                margin: 0 auto 20px;
+            }
+            
+            .controls {
+                margin-bottom: 20px;
+            }
+            
+            .settings {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Timer Allenamento</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="tabata">Tabata</button>
+            <button class="mode-btn" data-mode="countdown">Countdown</button>
+            <button class="mode-btn" data-mode="stopwatch">Cronometro</button>
+        </div>
+        
+        <div class="timer-display">
+            <div class="timer-circle">
+                <!-- Progress Ring per Tabata e Countdown -->
+                <svg class="progress-ring" width="250" height="250">
+                    <circle
+                        class="progress-ring__circle"
+                        r="125"
+                        cx="125"
+                        cy="125"
+                    />
+                </svg>
+                
+                <!-- Stopwatch Display -->
+                <svg class="stopwatch-display hidden" width="280" height="280" viewBox="0 0 280 280">
+                    <!-- Cerchio esterno -->
+                    <circle cx="140" cy="140" r="130" fill="none" stroke="#333333" stroke-width="3"/>
+                    
+                    <!-- Marcatori principali e secondari -->
+                    <g class="marks" id="stopwatch-marks"></g>
+                    
+                    <!-- Lancette a croce -->
+                    <g class="hands" transform="translate(140,140)">
+                        <!-- Lancetta 0° (rosso) -->
+                        <line x1="0" y1="0" x2="0" y2="-110" stroke="#CC0000" stroke-width="12" stroke-linecap="round"/>
+                        <!-- Lancetta 90° (verde) -->
+                        <line x1="0" y1="0" x2="110" y2="0" stroke="#009900" stroke-width="12" stroke-linecap="round"/>
+                        <!-- Lancetta 180° (blu) -->
+                        <line x1="0" y1="0" x2="0" y2="110" stroke="#0066CC" stroke-width="12" stroke-linecap="round"/>
+                        <!-- Lancetta 270° (arancione) -->
+                        <line x1="0" y1="0" x2="-110" y2="0" stroke="#FF6600" stroke-width="12" stroke-linecap="round"/>
+                    </g>
+                    
+                    <!-- Centro -->
+                    <circle cx="140" cy="140" r="15" fill="#333333"/>
+                </svg>
+                
+                <div class="timer-inner">
+                    <div class="timer-time">00:00</div>
+                    <div class="timer-phase">Pronto</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn start-btn">Start</button>
+            <button class="control-btn pause-btn hidden">Pause</button>
+            <button class="control-btn reset-btn">Reset</button>
+        </div>
+        
+        <div class="settings">
+            <div id="tabata-settings">
+                <div class="setting-group">
+                    <label for="work-time">Tempo Lavoro (sec)</label>
+                    <input type="number" id="work-time" min="1" max="600" value="20">
+                </div>
+                <div class="setting-group">
+                    <label for="rest-time">Tempo Riposo (sec)</label>
+                    <input type="number" id="rest-time" min="1" max="600" value="10">
+                </div>
+                <div class="setting-group">
+                    <label for="rounds">Round</label>
+                    <input type="number" id="rounds" min="1" max="20" value="8">
+                </div>
+                <div class="rounds-display">Round: <span id="current-round">0</span>/<span id="total-rounds">8</span></div>
+            </div>
+            
+            <div id="countdown-settings" class="hidden">
+                <div class="setting-group">
+                    <label for="countdown-time">Tempo Totale (sec)</label>
+                    <input type="number" id="countdown-time" min="1" max="3600" value="60">
+                </div>
+            </div>
+            
+            <div id="stopwatch-settings" class="hidden">
+                <div class="setting-group">
+                    <label>Cronometro</label>
+                    <p style="font-size: 1.1rem; margin-top: 10px; color: #555555;">Premi Start per iniziare a misurare il tempo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PWA Install Button -->
+    <button id="installBtn" class="install-btn">Installa App</button>
+    
+    <!-- Install Instructions Modal -->
+    <div id="installInstructions" class="install-instructions">
+        <div class="instructions-content">
+            <h2>Come installare l'app</h2>
+            <div id="androidInstructions">
+                <h3>Per Android (Chrome):</h3>
+                <ol>
+                    <li>Tocca i tre puntini in alto a destra (menu)</li>
+                    <li>Seleziona "Aggiungi alla Home"</li>
+                    <li>Tocca "Aggiungi"</li>
+                </ol>
+            </div>
+            <div id="iosInstructions">
+                <h3>Per iOS (Safari):</h3>
+                <ol>
+                    <li>Tocca l'icona di condivisione (quadrato con freccia in uscita)</li>
+                    <li>Scorri verso il basso e tocca "Aggiungi a Home"</li>
+                    <li>Tocca "Aggiungi"</li>
+                </ol>
+            </div>
+            <button id="closeInstructions" class="close-instructions">Chiudi</button>
+        </div>
+    </div>
+
+    <script>
+        // Elementi DOM
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const timerTime = document.querySelector('.timer-time');
+        const timerPhase = document.querySelector('.timer-phase');
+        const progressCircle = document.querySelector('.progress-ring__circle');
+        const progressRing = document.querySelector('.progress-ring');
+        const stopwatchDisplay = document.querySelector('.stopwatch-display');
+        const stopwatchHands = document.querySelector('.hands');
+        const timerInner = document.querySelector('.timer-inner');
+        const startBtn = document.querySelector('.start-btn');
+        const pauseBtn = document.querySelector('.pause-btn');
+        const resetBtn = document.querySelector('.reset-btn');
+        const tabataSettings = document.getElementById('tabata-settings');
+        const countdownSettings = document.getElementById('countdown-settings');
+        const stopwatchSettings = document.getElementById('stopwatch-settings');
+        const workTimeInput = document.getElementById('work-time');
+        const restTimeInput = document.getElementById('rest-time');
+        const roundsInput = document.getElementById('rounds');
+        const countdownTimeInput = document.getElementById('countdown-time');
+        const currentRoundSpan = document.getElementById('current-round');
+        const totalRoundsSpan = document.getElementById('total-rounds');
+        const stopwatchMarks = document.getElementById('stopwatch-marks');
+        const installBtn = document.getElementById('installBtn');
+        const installInstructions = document.getElementById('installInstructions');
+        const closeInstructions = document.getElementById('closeInstructions');
+        const androidInstructions = document.getElementById('androidInstructions');
+        const iosInstructions = document.getElementById('iosInstructions');
+        
+        // Variabili globali
+        const radius = 125;
+        const circumference = 2 * Math.PI * radius;
+        let mode = 'tabata';
+        let timer = null;
+        let timeLeft = 0;
+        let totalTime = 0;
+        let isRunning = false;
+        let isPaused = false;
+        let currentRound = 0;
+        let isWorkPhase = true;
+        let audioContext = null;
+        let lastAlertSecond = null;
+        let stopwatchTime = 0; // Tempo del cronometro in secondi
+        let stopwatchInterval = null;
+        let deferredPrompt;
+        
+        // Funzione per generare i marcatori dei secondi sul cronometro
+        function generateStopwatchMarks() {
+            const centerX = 140;
+            const centerY = 140;
+            const radius = 130;
+            
+            // Svuota il gruppo dei marcatori
+            stopwatchMarks.innerHTML = '';
+            
+            // Genera marcatori per ogni secondo (0-59)
+            for (let i = 0; i < 60; i++) {
+                const angle = (i * 6 - 90) * (Math.PI / 180); // 6 gradi per secondo, partendo dall'alto
+                const isMultipleOf5 = i % 5 === 0;
+                const isQuarter = i % 15 === 0;
+                
+                // Calcola la lunghezza del marcatore
+                const markLength = isQuarter ? 20 : (isMultipleOf5 ? 15 : 8);
+                const strokeWidth = isQuarter ? 3 : (isMultipleOf5 ? 2 : 1);
+                
+                // Calcola le coordinate di inizio e fine
+                const innerX = centerX + (radius - markLength) * Math.cos(angle);
+                const innerY = centerY + (radius - markLength) * Math.sin(angle);
+                const outerX = centerX + radius * Math.cos(angle);
+                const outerY = centerY + radius * Math.sin(angle);
+                
+                // Crea il marcatore
+                const mark = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                mark.setAttribute('x1', innerX);
+                mark.setAttribute('y1', innerY);
+                mark.setAttribute('x2', outerX);
+                mark.setAttribute('y2', outerY);
+                mark.setAttribute('stroke', '#333333');
+                mark.setAttribute('stroke-width', strokeWidth);
+                
+                stopwatchMarks.appendChild(mark);
+                
+                // Aggiungi etichette per i quarti (0, 15, 30, 45)
+                if (isQuarter) {
+                    const textRadius = radius - 30;
+                    const textX = centerX + textRadius * Math.cos(angle);
+                    const textY = centerY + textRadius * Math.sin(angle);
+                    
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', textX);
+                    text.setAttribute('y', textY);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('fill', '#333333');
+                    text.setAttribute('font-size', '16');
+                    text.setAttribute('font-weight', 'bold');
+                    text.textContent = i;
+                    
+                    stopwatchMarks.appendChild(text);
+                }
+            }
+        }
+        
+        // Inizializzazione PWA
+        function initPWA() {
+            // Rileva il sistema operativo
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            
+            // Mostra/nascondi le istruzioni in base al sistema operativo
+            if (isAndroid) {
+                iosInstructions.style.display = 'none';
+            } else if (isIOS) {
+                androidInstructions.style.display = 'none';
+            }
+            
+            // Gestione dell'installazione della PWA
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Impedisci il comportamento predefinito
+                e.preventDefault();
+                // Memorizza l'evento per poterlo usare dopo
+                deferredPrompt = e;
+                // Mostra il pulsante di installazione
+                installBtn.style.display = 'block';
+            });
+            
+            // Gestione del click sul pulsante di installazione
+            installBtn.addEventListener('click', () => {
+                // Nascondi il pulsante
+                installBtn.style.display = 'none';
+                
+                if (deferredPrompt) {
+                    // Mostra il prompt di installazione
+                    deferredPrompt.prompt();
+                    // Attendi la risposta dell'utente
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Utente ha accettato l\'installazione');
+                        } else {
+                            console.log('Utente ha rifiutato l\'installazione');
+                        }
+                        // Resetta il deferred prompt
+                        deferredPrompt = null;
+                    });
+                } else {
+                    // Mostra le istruzioni manuali
+                    installInstructions.classList.add('show');
+                }
+            });
+            
+            // Gestione della chiusura delle istruzioni
+            closeInstructions.addEventListener('click', () => {
+                installInstructions.classList.remove('show');
+            });
+            
+            // Nascondi il pulsante se l'app è già installata
+            window.addEventListener('appinstalled', () => {
+                installBtn.style.display = 'none';
+                console.log('PWA è stata installata');
+            });
+            
+            // Controlla se l'app è già in modalità standalone
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('App è già in modalità standalone');
+                installBtn.style.display = 'none';
+            }
+            
+            // Registra il Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrato con successo:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Registrazione Service Worker fallita:', error);
+                    });
+            }
+        }
+        
+        // Inizializzazione
+        function init() {
+            // Genera i marcatori del cronometro
+            generateStopwatchMarks();
+            
+            // Inizializza la PWA
+            initPWA();
+            
+            // Imposta il progress ring
+            progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressCircle.style.strokeDashoffset = circumference;
+            
+            // Event listener per i pulsanti di modalità
+            modeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modeBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    mode = btn.dataset.mode;
+                    resetTimer();
+                    updateSettingsDisplay();
+                    updateDisplayMode();
+                });
+            });
+            
+            // Event listener per i controlli
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resetBtn.addEventListener('click', resetTimer);
+            
+            // Event listener per gli input
+            workTimeInput.addEventListener('change', updateTotalRounds);
+            restTimeInput.addEventListener('change', updateTotalRounds);
+            roundsInput.addEventListener('change', updateTotalRounds);
+            
+            // Inizializza display
+            updateSettingsDisplay();
+            updateTotalRounds();
+            updateDisplayMode();
+        }
+        
+        // Aggiorna la visualizzazione delle impostazioni
+        function updateSettingsDisplay() {
+            tabataSettings.classList.add('hidden');
+            countdownSettings.classList.add('hidden');
+            stopwatchSettings.classList.add('hidden');
+            
+            if (mode === 'tabata') {
+                tabataSettings.classList.remove('hidden');
+            } else if (mode === 'countdown') {
+                countdownSettings.classList.remove('hidden');
+            } else if (mode === 'stopwatch') {
+                stopwatchSettings.classList.remove('hidden');
+            }
+        }
+        
+        // Aggiorna la modalità di visualizzazione
+        function updateDisplayMode() {
+            if (mode === 'stopwatch') {
+                progressRing.classList.add('hidden');
+                stopwatchDisplay.classList.remove('hidden');
+                timerInner.classList.add('stopwatch-mode');
+            } else {
+                progressRing.classList.remove('hidden');
+                stopwatchDisplay.classList.add('hidden');
+                timerInner.classList.remove('stopwatch-mode');
+            }
+        }
+        
+        // Aggiorna il numero totale di round
+        function updateTotalRounds() {
+            totalRoundsSpan.textContent = roundsInput.value;
+        }
+        
+        // Formatta il tempo in MM:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Formatta il tempo del cronometro in MM:SS:ms
+        function formatStopwatchTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 100);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+        
+        // Aggiorna il display del timer
+        function updateDisplay() {
+            if (mode === 'stopwatch') {
+                timerTime.textContent = formatStopwatchTime(stopwatchTime);
+                timerPhase.textContent = 'Cronometro';
+            } else {
+                timerTime.textContent = formatTime(timeLeft);
+                
+                // Aggiorna la fase corrente
+                if (mode === 'tabata') {
+                    if (isWorkPhase) {
+                        timerPhase.textContent = 'Lavoro';
+                    } else {
+                        timerPhase.textContent = 'Riposo';
+                    }
+                    currentRoundSpan.textContent = currentRound;
+                } else {
+                    timerPhase.textContent = 'Countdown';
+                }
+                
+                // Aggiorna la barra di progresso
+                const progress = totalTime > 0 ? ((totalTime - timeLeft) / totalTime) : 0;
+                const offset = circumference - (progress * circumference);
+                progressCircle.style.strokeDashoffset = offset;
+            }
+        }
+        
+        // Aggiorna il cronometro
+        function updateStopwatch() {
+            // Calcola l'angolo di rotazione (6 gradi per secondo)
+            const rotation = (stopwatchTime * 6) % 360;
+            stopwatchHands.setAttribute('transform', `translate(140,140) rotate(${rotation})`);
+        }
+        
+        // Avvia il cronometro
+        function startStopwatch() {
+            if (stopwatchInterval) clearInterval(stopwatchInterval);
+            stopwatchInterval = setInterval(() => {
+                stopwatchTime += 0.01;
+                updateDisplay();
+                updateStopwatch();
+            }, 10);
+        }
+        
+        // Ferma il cronometro
+        function stopStopwatch() {
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval);
+                stopwatchInterval = null;
+            }
+        }
+        
+        // Resetta il cronometro
+        function resetStopwatch() {
+            stopStopwatch();
+            stopwatchTime = 0;
+            updateDisplay();
+            updateStopwatch();
+        }
+        
+        // Riproduce un suono
+        function playSound(frequency, duration = 0.5) {
+            // Crea il contesto audio se non esiste
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+            gainNode.gain.value = 0.3;
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        // Avvia il timer
+        function startTimer() {
+            if (isRunning && !isPaused) return;
+            
+            if (!isPaused) {
+                if (mode === 'stopwatch') {
+                    // Inizializza il cronometro
+                    resetStopwatch();
+                } else {
+                    // Inizializza il timer
+                    if (mode === 'tabata') {
+                        const workTime = parseInt(workTimeInput.value);
+                        const restTime = parseInt(restTimeInput.value);
+                        const rounds = parseInt(roundsInput.value);
+                        
+                        currentRound = 1;
+                        isWorkPhase = true;
+                        timeLeft = workTime;
+                        totalTime = workTime;
+                    } else {
+                        const countdownTime = parseInt(countdownTimeInput.value);
+                        timeLeft = countdownTime;
+                        totalTime = countdownTime;
+                    }
+                    
+                    // Resetta l'ultimo secondo di avviso
+                    lastAlertSecond = null;
+                }
+            }
+            
+            isRunning = true;
+            isPaused = false;
+            startBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+            
+            // Avvia il cronometro o il timer
+            if (mode === 'stopwatch') {
+                startStopwatch();
+            } else {
+                updateDisplay();
+                
+                // Avvia il conteggio
+                timer = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    
+                    // Controlla se è necessario riprodurre un suono di avviso
+                    if ((timeLeft === 3 || timeLeft === 2) && lastAlertSecond !== timeLeft) {
+                        playSound(660, 0.2); // Suono di avviso breve
+                        lastAlertSecond = timeLeft;
+                    }
+                    
+                    if (timeLeft <= 0) {
+                        // Tempo scaduto
+                        if (mode === 'tabata') {
+                            if (isWorkPhase) {
+                                // Fase di lavoro finita
+                                playSound(880); // Suono alto per lavoro finito
+                                
+                                if (currentRound < parseInt(roundsInput.value)) {
+                                    // Passa alla fase di riposo
+                                    isWorkPhase = false;
+                                    timeLeft = parseInt(restTimeInput.value);
+                                    totalTime = parseInt(restTimeInput.value);
+                                } else {
+                                    // Tutti i round completati
+                                    clearInterval(timer);
+                                    isRunning = false;
+                                    timerPhase.textContent = 'Completato!';
+                                    playSound(440); // Suono basso per completamento
+                                    startBtn.classList.remove('hidden');
+                                    pauseBtn.classList.add('hidden');
+                                }
+                            } else {
+                                // Fase di riposo finita
+                                playSound(440); // Suono basso per riposo finito
+                                
+                                // Passa al round successivo
+                                currentRound++;
+                                isWorkPhase = true;
+                                timeLeft = parseInt(workTimeInput.value);
+                                totalTime = parseInt(workTimeInput.value);
+                            }
+                        } else {
+                            // Modalità countdown
+                            clearInterval(timer);
+                            isRunning = false;
+                            timerPhase.textContent = 'Completato!';
+                            playSound(880); // Suono alto per countdown finito
+                            startBtn.classList.remove('hidden');
+                            pauseBtn.classList.add('hidden');
+                        }
+                        
+                        // Resetta l'ultimo secondo di avviso per il prossimo intervallo
+                        lastAlertSecond = null;
+                    }
+                }, 1000);
+            }
+        }
+        
+        // Mette in pausa il timer
+        function pauseTimer() {
+            if (!isRunning) return;
+            
+            if (mode === 'stopwatch') {
+                stopStopwatch();
+            } else {
+                clearInterval(timer);
+            }
+            
+            isPaused = true;
+            startBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+        }
+        
+        // Resetta il timer
+        function resetTimer() {
+            if (mode === 'stopwatch') {
+                resetStopwatch();
+            } else {
+                clearInterval(timer);
+                isRunning = false;
+                isPaused = false;
+                timeLeft = 0;
+                totalTime = 0;
+                currentRound = 0;
+                isWorkPhase = true;
+                lastAlertSecond = null;
+                
+                timerTime.textContent = '00:00';
+                timerPhase.textContent = 'Pronto';
+                progressCircle.style.strokeDashoffset = circumference;
+                currentRoundSpan.textContent = '0';
+            }
+            
+            startBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+        }
+        
+        // Inizializza l'app
+        init();
+    </script>
+</body>
+</html>
